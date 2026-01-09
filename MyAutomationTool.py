@@ -14,7 +14,7 @@ X_BEARER_TOKEN = st.secrets["X_BEARER_TOKEN"]
 GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 SMART_LINK = st.secrets["SMART_LINK"]
 
-# إعداد Twitter Client
+# 2. إعداد الاتصال بـ Twitter (X)
 client_x = tweepy.Client(
     bearer_token=X_BEARER_TOKEN,
     consumer_key=X_API_KEY,
@@ -23,52 +23,63 @@ client_x = tweepy.Client(
     access_token_secret=X_ACCESS_TOKEN_SECRET
 )
 
+# 3. إعداد Groq AI
 groq_client = Groq(api_key=GROQ_API_KEY)
 
 # دالة لجلب الأخبار التريند
 def get_trending_news(query="technology"):
+    # كنستعملو Google News RSS كأفضل مصدر مجاني
     url = f"https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
     feed = feedparser.parse(url)
-    return feed.entries[:10]
+    return feed.entries[:15] # كيهز أول 15 خبر
 
-# دالة صناعة المحتوى بـ AI
+# دالة صناعة التغريدة بذكاء اصطناعي (تم إصلاح الموديل هنا)
 def generate_tweet(news_title):
-    prompt = f"Rewrite this news headline into a viral, engaging tweet: '{news_title}'. Use emojis and a call to action. Language: English."
-    chat = groq_client.chat.completions.create(
-        model="mixtral-8x7b-32768",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return chat.choices[0].message.content
+    try:
+        # استعملنا llama3-8b-8192 حيت هو المستقر حالياً
+        prompt = f"Summarize this news in one viral engaging tweet with emojis: '{news_title}'. Keep it under 200 characters. End with a call to action."
+        chat = groq_client.chat.completions.create(
+            model="llama3-8b-8192", 
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return chat.choices[0].message.content
+    except Exception as e:
+        # إلا وقع مشكل فـ AI كيرجع العنوان الأصلي باش الخدمة ما توقفش
+        return f"🚨 News Alert: {news_title}"
 
-# واجهة تطبيق Streamlit
-st.set_page_config(page_title="AI Trend Poster", page_icon="🚀")
-st.title("🚀 AI Trend Poster Control")
-st.write(f"Link being promoted: `{SMART_LINK}`")
+# 4. واجهة التطبيق Streamlit
+st.set_page_config(page_title="AI Viral Poster", page_icon="🔥")
+st.title("🔥 AI Trend & Viral Poster")
+st.markdown(f"**Target Link:** `{SMART_LINK}`")
 
-# اختيار المجال (Niche)
-topic = st.selectbox("Choose a Topic:", ["Technology", "AI", "Business", "Health", "Gaming"])
+# اختيار المجال
+niche = st.selectbox("Select Your Niche:", ["Technology", "AI", "Business", "Health", "Gaming", "Money"])
 
-if st.button("Search for Trending News"):
-    news_list = get_trending_news(topic)
+if st.button("🔍 Find Trending News"):
+    news_list = get_trending_news(niche)
     if news_list:
-        selected_news = random.choice(news_list)
-        st.subheader("🔥 Latest News Found:")
-        st.write(f"**Original:** {selected_news.title}")
+        # اختيار خبر عشوائي من اللي لقينا
+        item = random.choice(news_list)
+        st.success(f"Found: {item.title}")
         
-        # صناعة المحتوى
-        with st.spinner('AI is crafting your tweet...'):
-            tweet_content = generate_tweet(selected_news.title)
-            final_tweet = f"{tweet_content}\n\n🔗 {SMART_LINK}"
+        # صناعة التويتة
+        with st.spinner('AI is writing the tweet...'):
+            tweet_text = generate_tweet(item.title)
+            final_content = f"{tweet_text}\n\n🔗 {SMART_LINK}"
             
-        st.subheader("📝 Draft for Twitter:")
-        st.info(final_tweet)
+        st.subheader("📝 Final Tweet Draft:")
+        st.info(final_content)
         
-        # زر النشر
-        if st.button("Confirm & Post to X"):
+        # زر النشر النهائي
+        if st.button("🚀 Post to Twitter Now"):
             try:
-                client_x.create_tweet(text=final_tweet)
-                st.success("✅ Success! Check your Twitter account.")
+                client_x.create_tweet(text=final_content)
+                st.balloons()
+                st.success("✅ Tweet published successfully!")
             except Exception as e:
-                st.error(f"Error publishing: {e}")
+                st.error(f"Twitter Error: {e}")
     else:
-        st.warning("No news found for this topic.")
+        st.warning("No news found. Try another topic.")
+
+st.divider()
+st.caption("Auto-Pilot mode is handled by GitHub Actions.")
