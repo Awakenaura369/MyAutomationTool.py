@@ -1,8 +1,7 @@
-streamlit
-groq
 tweepy
-pandas
-feedparser
 requests
+beautifulsoup4
+groq
+feedparser
 
 
