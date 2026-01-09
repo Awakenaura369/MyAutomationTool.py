@@ -2,70 +2,89 @@ import streamlit as st
 import tweepy
 from groq import Groq
 import time
+import pandas as pd
+from datetime import datetime
 
 # --- إعداد الصفحة ---
-st.set_page_config(page_title="X AI Adsterra Bot", page_icon="🐦")
+st.set_page_config(page_title="X AI Adsterra Bot v2", page_icon="🐦", layout="wide")
 
-# --- جلب السوارت من Streamlit Secrets ---
+# --- جلب السوارت من Secrets ---
 try:
-    # سوارت X (Twitter)
-    bearer_token = st.secrets["X_BEARER_TOKEN"]
-    api_key = st.secrets["X_API_KEY"]
-    api_secret = st.secrets["X_API_SECRET"]
-    access_token = st.secrets["X_ACCESS_TOKEN"]
-    access_token_secret = st.secrets["X_ACCESS_TOKEN_SECRET"]
-    # ساروت Groq والرابط
-    groq_key = st.secrets["GROQ_API_KEY"]
-    smart_link = st.secrets["SMART_LINK"]
+    X_CREDS = {
+        "bearer_token": st.secrets["X_BEARER_TOKEN"],
+        "api_key": st.secrets["X_API_KEY"],
+        "api_secret": st.secrets["X_API_SECRET"],
+        "access_token": st.secrets["X_ACCESS_TOKEN"],
+        "access_token_secret": st.secrets["X_ACCESS_TOKEN_SECRET"]
+    }
+    GRO_KEY = st.secrets["GROQ_API_KEY"]
+    LINK = st.secrets["SMART_LINK"]
 except Exception as e:
-    st.error("❌ السوارت ناقصين! تأكد أنك حطيتيهم فـ Streamlit Secrets.")
+    st.error("❌ Secrets Error: Check your Streamlit Dashboard settings.")
     st.stop()
 
-# --- إعداد الـ Clients ---
+# --- تهيئة العملاء ---
 client_x = tweepy.Client(
-    bearer_token=bearer_token,
-    consumer_key=api_key,
-    consumer_secret=api_secret,
-    access_token=access_token,
-    access_token_secret=access_token_secret
+    bearer_token=X_CREDS["bearer_token"],
+    consumer_key=X_CREDS["api_key"],
+    consumer_secret=X_CREDS["api_secret"],
+    access_token=X_CREDS["access_token"],
+    access_token_secret=X_CREDS["access_token_secret"]
 )
-groq_client = Groq(api_key=groq_key)
+groq_client = Groq(api_key=GRO_KEY)
 
-st.title("🐦 X (Twitter) AI Traffic Bot")
+# --- واجهة المستخدم ---
+st.title("🚀 X AI Traffic Dashboard")
+
+# Session state لتخزين السجل
+if 'history' not in st.session_state:
+    st.session_state.history = []
+
+col_main, col_sidebar = st.columns([2, 1])
+
+with col_sidebar:
+    st.subheader("⚙️ Control Panel")
+    keyword = st.text_input("Search Keyword", "crypto tips")
+    limit = st.slider("Replies Limit", 1, 10, 2)
+    delay = st.number_input("Delay (seconds)", 30, 300, 60)
+
+with col_main:
+    if st.button("🔥 Run Automation Cycle"):
+        st.write(f"🔍 Searching for '{keyword}'...")
+        tweets = client_x.search_recent_tweets(query=f"{keyword} -is:retweet", max_results=10)
+        
+        if tweets.data:
+            for i, tweet in enumerate(tweets.data):
+                if i >= limit: break
+                
+                with st.spinner(f"AI generating reply {i+1}..."):
+                    prompt = f"Write a helpful, short reply to this: '{tweet.text}'. Mention this link: {LINK}"
+                    response = groq_client.chat.completions.create(
+                        model="llama3-8b-8192",
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                    reply = response.choices[0].message.content
+                    
+                    try:
+                        client_x.create_tweet(text=reply, in_reply_to_tweet_id=tweet.id)
+                        # إضافة للسجل
+                        st.session_state.history.append({
+                            "Time": datetime.now().strftime("%H:%M:%S"),
+                            "Tweet ID": tweet.id,
+                            "Status": "✅ Success"
+                        })
+                        st.success(f"Replied to {tweet.id}")
+                        time.sleep(delay)
+                    except Exception as e:
+                        st.error(f"Error on {tweet.id}: {e}")
+        else:
+            st.warning("No tweets found.")
+
+# --- عرض سجل العمليات ---
 st.markdown("---")
-
-# --- واجهة التحكم ---
-query = st.text_input("Keywords to search (e.g., 'money online' or 'football')", "make money online")
-max_replies = st.slider("Number of replies per cycle", 1, 10, 3)
-
-if st.button("🚀 Start AI Reply Cycle"):
-    st.info(f"Searching for tweets about: {query}...")
-    
-    # البحث عن تويتات
-    tweets = client_x.search_recent_tweets(query=f"{query} -is:retweet", max_results=10)
-    
-    if tweets.data:
-        count = 0
-        for tweet in tweets.data:
-            if count >= max_replies: break
-            
-            with st.spinner(f"AI is thinking of a reply for tweet {count+1}..."):
-                # صياغة الرد بـ Groq
-                prompt = f"Someone tweeted: '{tweet.text}'. Write a natural, very short human-like reply (max 15 words) and suggest they check this for more: {smart_link}"
-                
-                completion = groq_client.chat.completions.create(
-                    model="llama3-8b-8192",
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                ai_reply = completion.choices[0].message.content
-                
-                # الرد على التويتة
-                try:
-                    client_x.create_tweet(text=ai_reply, in_reply_to_tweet_id=tweet.id)
-                    st.success(f"✅ Replied to tweet ID: {tweet.id}")
-                    count += 1
-                    time.sleep(30) # وقت راحة باش ما يتسدش الحساب
-                except Exception as e:
-                    st.error(f"❌ Error: {e}")
-    else:
-        st.warning("No tweets found for this keyword.")
+st.subheader("📜 Activity Log")
+if st.session_state.history:
+    df = pd.DataFrame(st.session_state.history)
+    st.table(df.iloc[::-1]) # عرض الأحدث هو الأول
+else:
+    st.write("No activity yet. Press 'Run' to start.")
