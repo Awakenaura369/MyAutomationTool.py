@@ -2,4 +2,7 @@ streamlit
 groq
 tweepy
 pandas
+feedparser
+requests
+
 
