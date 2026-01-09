@@ -1,0 +1,28 @@
+name: X_AI_Scheduler
+
+on:
+  schedule:
+    - cron: '0 * * * *' # كيدور مرة كل رأس ساعة
+  workflow_dispatch: # باش تقدر تخدمو يدوياً للتجربة
+
+jobs:
+  run-auto-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Libs
+        run: pip install -r requirements.txt
+      - name: Execute
+        env:
+          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          SMART_LINK: ${{ secrets.SMART_LINK }}
+        run: python bot_cron.py
