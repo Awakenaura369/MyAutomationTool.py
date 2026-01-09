@@ -2,7 +2,4 @@ tweepy
 requests
 beautifulsoup4
 groq
-feedparser
-
-
-
+streamlit
