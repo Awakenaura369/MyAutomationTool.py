@@ -4,9 +4,9 @@ import requests
 from bs4 import BeautifulSoup
 import google.generativeai as genai
 
-st.set_page_config(page_title="AgoraMAI Global", page_icon="🌐")
+st.set_page_config(page_title="Tech Pulse Global", page_icon="🌐")
 
-# ربط السوارت (Gemini + Twitter)
+# ربط السوارت
 try:
     client = tweepy.Client(
         consumer_key=st.secrets["TWITTER_API_KEY"],
@@ -14,9 +14,9 @@ try:
         access_token=st.secrets["TWITTER_ACCESS_TOKEN"],
         access_token_secret=st.secrets["TWITTER_ACCESS_TOKEN_SECRET"]
     )
-    # إعداد Gemini
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # تصحيح سمية الموديل هنا
+    model = genai.GenerativeModel('models/gemini-1.5-flash')
     smart_link = st.secrets["SMART_LINK"]
     st.sidebar.success("✅ Engine Ready (Gemini)")
 except Exception as e:
@@ -39,7 +39,6 @@ if st.button("🔍 Scan for News"):
 
 if 'current_news' in st.session_state:
     try:
-        # صياغة بـ Gemini
         prompt = f"Write a viral English tweet about: {st.session_state['current_news']}. Use emojis. Max 200 chars. No links."
         response = model.generate_content(prompt)
         draft = response.text
