@@ -37,7 +37,7 @@ def generate_with_groq(news_title):
     
     try:
         completion = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant", # <--- **هذا هو الموديل الجديد!**
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
         )
