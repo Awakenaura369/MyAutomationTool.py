@@ -6,12 +6,13 @@ from bs4 import BeautifulSoup
 
 st.set_page_config(page_title="Tech Pulse Global", page_icon="🌐")
 
-# دالة لإعداد المحركات مع تصحيح الموديل
-def setup_engines():
+# إعداد المحركات
+@st.cache_resource
+def load_engines():
     try:
-        # تأكد أن هاد السوارت كاينين فـ Secrets بنفس هاد السميات
-        g_key = st.secrets["GEMINI_API_KEY"]
-        s_link = st.secrets["SMART_LINK"]
+        # إعداد Gemini بالسمية القصيرة (هذا هو الحل للـ 404)
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         # إعداد تويتر
         client = tweepy.Client(
@@ -20,57 +21,33 @@ def setup_engines():
             access_token=st.secrets["TWITTER_ACCESS_TOKEN"],
             access_token_secret=st.secrets["TWITTER_ACCESS_TOKEN_SECRET"]
         )
-        
-        # إعداد Gemini (التصحيح هنا)
-        genai.configure(api_key=g_key)
-        # استعملنا الاسم القصير للموديل لتفادي 404
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        
-        return client, model, s_link
+        return client, model
     except Exception as e:
-        st.error(f"⚠️ Secrets/Setup Error: {e}")
-        return None, None, None
+        st.error(f"Setup Error: {e}")
+        return None, None
 
-# تخزين فـ Session State باش ميبقاش يختفي
-if 'init_done' not in st.session_state:
-    st.session_state.client, st.session_state.model, st.session_state.link = setup_engines()
-    st.session_state.init_done = True
+client, model = load_engines()
 
-client = st.session_state.client
-model = st.session_state.model
-smart_link = st.session_state.link
+st.title("🌐 Tech Pulse Agent (Gemini)")
 
-st.title("🌐 Tech Pulse Global Agent")
+topic = st.selectbox("Topic", ["AI", "Crypto", "Tech"])
 
-if model:
-    st.sidebar.success("✅ Engine Ready")
-else:
-    st.sidebar.warning("⚠️ Engine Offline")
+if st.button("🔍 Scan"):
+    res = requests.get(f"https://www.google.com/search?q={topic}+latest+news&hl=en")
+    soup = BeautifulSoup(res.text, "html.parser")
+    st.session_state.news = soup.find('h3').text if soup.find('h3') else "New Tech Update"
+    st.info(f"Found: {st.session_state.news}")
 
-niche = st.selectbox("Topic", ["AI News", "Tech Trends", "Crypto"])
-
-if st.button("🔍 Scan for News"):
-    try:
-        url = f"https://www.google.com/search?q={niche}+latest+news&hl=en"
-        res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
-        soup = BeautifulSoup(res.text, "html.parser")
-        st.session_state['news_content'] = soup.find('h3').text if soup.find('h3') else f"Latest in {niche}"
-        st.info(f"Found: {st.session_state['news_content']}")
-    except:
-        st.error("Scan failed.")
-
-if 'news_content' in st.session_state and model:
-    try:
-        # توليد البوست
-        prompt = f"Write a viral tech tweet about: {st.session_state['news_content']}. Max 200 chars. Use emojis."
-        response = model.generate_content(prompt)
-        
-        final_post = f"🚨 {response.text}\n\nRead more 👇\n{smart_link}"
-        tweet_text = st.text_area("Draft:", value=final_post, height=150)
-        
-        if st.button("🚀 Blast to X"):
+if 'news' in st.session_state and model:
+    if st.button("🚀 Generate & Post"):
+        try:
+            # توليد النص
+            response = model.generate_content(f"Tweet about: {st.session_state.news}. Max 200 chars.")
+            tweet_text = f"🚨 {response.text}\n\nRead: {st.secrets['SMART_LINK']}"
+            
+            # النشر
             client.create_tweet(text=tweet_text)
+            st.success("✅ Tweet is LIVE!")
             st.balloons()
-            st.success("✅ Live on X!")
-    except Exception as e:
-        st.error(f"❌ Gemini Error: {e}")
+        except Exception as e:
+            st.error(f"Gemini/Twitter Error: {e}")
