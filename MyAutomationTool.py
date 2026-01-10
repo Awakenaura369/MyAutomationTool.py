@@ -6,7 +6,7 @@ import google.generativeai as genai
 
 st.set_page_config(page_title="AgoraMAI Global", page_icon="🌐")
 
-# ربط السوارت
+# ربط السوارت (Gemini + Twitter)
 try:
     client = tweepy.Client(
         consumer_key=st.secrets["TWITTER_API_KEY"],
@@ -16,15 +16,15 @@ try:
     )
     # إعداد Gemini
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    model = genai.GenerativeModel('gemini-1.5-flash') # هاد الموديل هو الأسرع
+    model = genai.GenerativeModel('gemini-1.5-flash')
     smart_link = st.secrets["SMART_LINK"]
     st.sidebar.success("✅ Engine Ready (Gemini)")
 except Exception as e:
-    st.sidebar.error("❌ Check Secrets")
+    st.sidebar.error(f"❌ Setup Error: {e}")
 
-st.title("🌐 AgoraMAI Global Agent")
+st.title("🌐 Tech Pulse Global Agent")
 
-niche = st.selectbox("Target Topic", ["AI News", "Tech Trends", "Crypto", "Future"])
+niche = st.selectbox("Target Topic", ["AI News", "Tech Trends", "Crypto", "Future Tech"])
 
 if st.button("🔍 Scan for News"):
     try:
@@ -50,6 +50,6 @@ if 'current_news' in st.session_state:
         if st.button("🚀 Blast to X"):
             client.create_tweet(text=final_text)
             st.balloons()
-            st.success("✅ Tweet is LIVE!")
+            st.success("✅ Tweet is LIVE on Tech Pulse!")
     except Exception as e:
         st.error(f"Gemini Error: {e}")
