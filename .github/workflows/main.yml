@@ -2,8 +2,8 @@ name: Tech Pulse Auto Bot
 
 on:
   schedule:
-    - cron: '0 */3 * * *' # كينشر كل 3 ساعات
-  workflow_dispatch: # باش تقدر تخدمو بيدك من GitHub Actions
+    - cron: '0 */3 * * *' 
+  workflow_dispatch: 
 
 jobs:
   build:
@@ -30,4 +30,4 @@ jobs:
           TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SMART_LINK: ${{ secrets.SMART_LINK }}
-        run: python bot_cron.py # تأكد أن اسم الملف هنا هو نفس اسم ملف البوت عندك
+        run: python bot_cron.py
