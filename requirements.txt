@@ -1,5 +1,6 @@
+streamlit
 tweepy
 requests
 beautifulsoup4
-streamlit
+groq
 google-generativeai
