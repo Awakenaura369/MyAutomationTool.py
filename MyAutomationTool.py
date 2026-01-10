@@ -4,10 +4,9 @@ import requests
 from bs4 import BeautifulSoup
 from groq import Groq
 
-# Page Config
-st.set_page_config(page_title="AgoraMAI Global Control", page_icon="🌐")
+st.set_page_config(page_title="AgoraMAI Global", page_icon="🌐")
 
-# Load Secrets
+# ربط السوارت
 try:
     client = tweepy.Client(
         consumer_key=st.secrets["TWITTER_API_KEY"],
@@ -17,47 +16,41 @@ try:
     )
     groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
     smart_link = st.secrets["SMART_LINK"]
-    st.sidebar.success("✅ System Online (English Mode)")
+    st.sidebar.success("✅ Engine Ready")
 except Exception as e:
-    st.sidebar.error("❌ Secrets Error!")
+    st.sidebar.error("❌ Check Secrets")
 
-st.title("🚀 AgoraMAI Global Agent")
+st.title("🌐 AgoraMAI Global Agent")
 
-# Niche Selection
-niche = st.selectbox("Select Target Topic", ["AI & Tech", "Crypto & Web3", "Space & Future"])
+niche = st.selectbox("Target Topic", ["AI News", "Tech Trends", "Crypto", "Future"])
 
-def fetch_news(topic):
+if st.button("🔍 Scan for News"):
     try:
-        url = f"https://www.google.com/search?q={topic}+news&hl=en"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers)
+        url = f"https://www.google.com/search?q={niche}+latest+news&hl=en"
+        response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
         soup = BeautifulSoup(response.text, "html.parser")
-        return soup.find('h3').text if soup.find('h3') else f"Update on {topic}"
+        news = soup.find('h3').text if soup.find('h3') else f"Big update in {niche}"
+        st.session_state['current_news'] = news
+        st.info(f"Found: {news}")
     except:
-        return f"Global interest in {topic} spikes today!"
+        st.error("Could not fetch news.")
 
-if st.button("🔍 Scan for Trends"):
-    news = fetch_news(niche)
-    st.session_state['news'] = news
-    st.info(f"Breaking: {news}")
-
-if 'news' in st.session_state:
+if 'current_news' in st.session_state:
     try:
         completion = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
-                {"role": "system", "content": "You are a tech influencer. Write engaging English tweets."},
-                {"role": "user", "content": f"Create a viral English tweet about: {st.session_state['news']}. Include emojis."}
+                {"role": "system", "content": "You are a viral tech influencer. Write engaging English tweets."},
+                {"role": "user", "content": f"Write a viral tweet about: {st.session_state['current_news']}. Use emojis. Max 200 chars. No links."}
             ]
         )
-        ai_draft = completion.choices[0].message.content
-        final_post = f"🚨 {ai_draft}\n\nRead more 👇\n{smart_link}"
+        draft = completion.choices[0].message.content
+        final_post = f"🚨 {draft}\n\nRead more 👇\n{smart_link}"
+        final_text = st.text_area("Final Draft:", value=final_post, height=150)
         
-        edited = st.text_area("Final Preview (English):", value=final_post, height=150)
-        
-        if st.button("🚀 Blast Globally"):
-            client.create_tweet(text=edited)
+        if st.button("🚀 Blast to X"):
+            client.create_tweet(text=final_text)
             st.balloons()
-            st.success("✅ Posted to Global Audience!")
+            st.success("✅ Tweet is LIVE!")
     except Exception as e:
-        st.error(f"AI Error: {e}")
+        st.error(f"Error: {e}")
