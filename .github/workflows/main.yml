@@ -1,4 +1,4 @@
-name: Tech Pulse Auto Bot
+name: Tech Pulse Auto Bot (Groq Edition)
 
 on:
   schedule:
@@ -28,6 +28,6 @@ jobs:
           TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
           TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
           TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           SMART_LINK: ${{ secrets.SMART_LINK }}
         run: python bot_cron.py
