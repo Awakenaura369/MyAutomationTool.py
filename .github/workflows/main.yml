@@ -1,9 +1,9 @@
-name: Tech Pulse Auto Bot (Groq Edition)
+name: Telegram Tech Bot Cron
 
 on:
   schedule:
-    - cron: '0 */3 * * *' 
-  workflow_dispatch: 
+    - cron: '0 * * * *' # كيخدم كل ساعة
+  workflow_dispatch: # كيخليك تخدمو بيدك وقتما بغيتي
 
 jobs:
   build:
@@ -19,15 +19,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install groq requests beautifulsoup4
 
       - name: Run Bot
         env:
-          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
-          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
-          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
-          TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SMART_LINK: ${{ secrets.SMART_LINK }}
-        run: python bot_cron.py
+        run: python MyAutomationTool.py
