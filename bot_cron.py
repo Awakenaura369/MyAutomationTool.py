@@ -2,37 +2,43 @@ import tweepy
 import os
 import requests
 from bs4 import BeautifulSoup
-from groq import Groq
+import google.generativeai as genai
 
 def run_bot():
-    # جلب السوارت من GitHub Secrets
+    # 1. إعداد تويتر
     client = tweepy.Client(
         consumer_key=os.getenv("TWITTER_API_KEY"),
         consumer_secret=os.getenv("TWITTER_API_SECRET"),
         access_token=os.getenv("TWITTER_ACCESS_TOKEN"),
         access_token_secret=os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
     )
-    groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    
+    # 2. إعداد Gemini
+    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+    model = genai.GenerativeModel('gemini-1.5-flash')
     smart_link = os.getenv("SMART_LINK")
 
-    # جلب خبر
+    # 3. جلب خبر عالمي بالإنجليزية
     try:
         res = requests.get("https://techcrunch.com/category/artificial-intelligence/", timeout=10)
         soup = BeautifulSoup(res.text, 'html.parser')
         news_title = soup.find('h2').text.strip()
     except:
-        news_title = "The future of AI is evolving fast!"
+        news_title = "AI innovation is accelerating globally!"
 
-    # صياغة بالذكاء الاصطناعي
-    completion = groq_client.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        messages=[{"role": "user", "content": f"Write a viral English tweet about: {news_title}. Use emojis. Max 200 chars."}]
-    )
-    ai_text = completion.choices[0].message.content
+    # 4. صياغة التويتة بـ Gemini
+    prompt = f"Write a viral tech influencer tweet in English about: {news_title}. Use emojis. Max 200 chars. No links."
+    response = model.generate_content(prompt)
+    ai_text = response.text.strip()
     
-    # النشر
-    client.create_tweet(text=f"🚨 {ai_text}\n\nMore info: {smart_link}")
-    print("✅ Auto-Tweet Posted!")
+    # 5. النشر النهائي
+    final_tweet = f"🚀 {ai_text}\n\nFull Story 👇\n{smart_link}"
+    
+    try:
+        client.create_tweet(text=final_tweet)
+        print("✅ Global Auto-Tweet Posted!")
+    except Exception as e:
+        print(f"❌ Tweet failed: {e}")
 
 if __name__ == "__main__":
     run_bot()
