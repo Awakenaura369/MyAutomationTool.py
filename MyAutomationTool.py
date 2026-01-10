@@ -2,7 +2,7 @@ import streamlit as st
 import tweepy
 import requests
 from bs4 import BeautifulSoup
-from groq import Groq
+import google.generativeai as genai
 
 st.set_page_config(page_title="AgoraMAI Global", page_icon="🌐")
 
@@ -14,9 +14,11 @@ try:
         access_token=st.secrets["TWITTER_ACCESS_TOKEN"],
         access_token_secret=st.secrets["TWITTER_ACCESS_TOKEN_SECRET"]
     )
-    groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+    # إعداد Gemini
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    model = genai.GenerativeModel('gemini-1.5-flash') # هاد الموديل هو الأسرع
     smart_link = st.secrets["SMART_LINK"]
-    st.sidebar.success("✅ Engine Ready")
+    st.sidebar.success("✅ Engine Ready (Gemini)")
 except Exception as e:
     st.sidebar.error("❌ Check Secrets")
 
@@ -37,14 +39,11 @@ if st.button("🔍 Scan for News"):
 
 if 'current_news' in st.session_state:
     try:
-        completion = groq_client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {"role": "system", "content": "You are a viral tech influencer. Write engaging English tweets."},
-                {"role": "user", "content": f"Write a viral tweet about: {st.session_state['current_news']}. Use emojis. Max 200 chars. No links."}
-            ]
-        )
-        draft = completion.choices[0].message.content
+        # صياغة بـ Gemini
+        prompt = f"Write a viral English tweet about: {st.session_state['current_news']}. Use emojis. Max 200 chars. No links."
+        response = model.generate_content(prompt)
+        draft = response.text
+        
         final_post = f"🚨 {draft}\n\nRead more 👇\n{smart_link}"
         final_text = st.text_area("Final Draft:", value=final_post, height=150)
         
@@ -53,4 +52,4 @@ if 'current_news' in st.session_state:
             st.balloons()
             st.success("✅ Tweet is LIVE!")
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Gemini Error: {e}")
