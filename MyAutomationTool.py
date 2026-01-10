@@ -32,9 +32,9 @@ def setup_engines():
         return None, None, None
 
 # تخزين فـ Session State باش ميبقاش يختفي
-if 'ready' not in st.session_state:
+if 'init_done' not in st.session_state:
     st.session_state.client, st.session_state.model, st.session_state.link = setup_engines()
-    st.session_state.ready = True
+    st.session_state.init_done = True
 
 client = st.session_state.client
 model = st.session_state.model
@@ -54,15 +54,15 @@ if st.button("🔍 Scan for News"):
         url = f"https://www.google.com/search?q={niche}+latest+news&hl=en"
         res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
         soup = BeautifulSoup(res.text, "html.parser")
-        st.session_state['news_data'] = soup.find('h3').text if soup.find('h3') else f"Latest in {niche}"
-        st.info(f"Found: {st.session_state['news_data']}")
+        st.session_state['news_content'] = soup.find('h3').text if soup.find('h3') else f"Latest in {niche}"
+        st.info(f"Found: {st.session_state['news_content']}")
     except:
         st.error("Scan failed.")
 
-if 'news_data' in st.session_state and model:
+if 'news_content' in st.session_state and model:
     try:
         # توليد البوست
-        prompt = f"Write a viral tech tweet about: {st.session_state['news_data']}. Max 200 chars. Use emojis."
+        prompt = f"Write a viral tech tweet about: {st.session_state['news_content']}. Max 200 chars. Use emojis."
         response = model.generate_content(prompt)
         
         final_post = f"🚨 {response.text}\n\nRead more 👇\n{smart_link}"
